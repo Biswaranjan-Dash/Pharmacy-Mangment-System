@@ -1,20 +1,31 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Prescription from "@/models/Prescription";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export async function PATCH(request, { params }) {
+// Define the expected shape of the request body
+interface PrescriptionUpdateBody {
+  status: string; // Assuming status is the only field being updated
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     await connectDB();
     const session = await getServerSession(authOptions);
     
-    if (!session || session.user.role !== 'doctor') {
+    // Type assertion for session.user
+    const user = session?.user as { id: string; role: string } | undefined;
+    
+    if (!session || !user || user.role !== 'doctor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const { id } = params;
-    const data = await request.json();
+    const data = await request.json() as PrescriptionUpdateBody;
     
     // Find the prescription
     const prescription = await Prescription.findById(id);
@@ -24,7 +35,7 @@ export async function PATCH(request, { params }) {
     }
     
     // Check if the prescription belongs to the logged-in doctor
-    if (prescription.doctor.toString() !== session.user.id) {
+    if (prescription.doctor.toString() !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
@@ -43,4 +54,4 @@ export async function PATCH(request, { params }) {
     console.error('Error updating prescription:', error);
     return NextResponse.json({ error: 'Failed to update prescription' }, { status: 500 });
   }
-}
+}ss

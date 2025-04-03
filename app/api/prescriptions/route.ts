@@ -1,19 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import Prescription from "@/models/Prescription";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export async function POST(request) {
+// Define the expected shape of the request body
+interface PrescriptionRequestBody {
+  patientId: string;
+  medicines: Array<{
+    medicineId: string;
+    dosage: string;
+    duration: string;
+  }>;
+  notes?: string;
+  validUntil: string; // Assuming this is a date string
+}
+
+export async function POST(request: NextRequest) {
   try {
     await connectDB();
     const session = await getServerSession(authOptions);
     
-    if (!session || session.user.role !== 'doctor') {
+    // Type assertion for session.user
+    const user = session?.user as { id: string; role: string } | undefined;
+    
+    if (!session || !user || user.role !== 'doctor') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const data = await request.json();
+    const data = await request.json() as PrescriptionRequestBody;
     
     // Format medicines array
     const formattedMedicines = data.medicines.map(med => ({
@@ -25,7 +40,7 @@ export async function POST(request) {
     // Create new prescription
     const newPrescription = await Prescription.create({
       patient: data.patientId,
-      doctor: session.user.id,
+      doctor: user.id,
       medicines: formattedMedicines,
       notes: data.notes || '',
       validUntil: new Date(data.validUntil),

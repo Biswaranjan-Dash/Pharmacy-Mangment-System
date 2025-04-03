@@ -48,22 +48,29 @@ export const authOptions: AuthOptions = {
       },
     }),
   ],
-  session: { strategy: "jwt" as const },
+  session: { strategy: "jwt" },
   callbacks: {
     jwt({ token, user }) {
+      // `user` is only present on initial sign-in
       if (user) {
-        token.id = user.id || user.sub;
-        token.role = user.role;
-        token.name = user.name;
+        // Type assertion since we know the shape from authorize
+        const customUser = user as { id: string; role: string; name: string };
+        token.id = customUser.id; // Use id from our custom user object
+        token.role = customUser.role;
+        token.name = customUser.name;
       }
       // console.log("JWT Token After Assignment:", token);
       return token;
     },
     session({ session, token }) {
       if (token && session.user) {
-        session.user.id = (token.id || user.sub) as string; 
-        session.user.role = token.role;
-        session.user.name = token.name as string;
+        // Type the session.user to include our custom fields
+        session.user = {
+          ...session.user,
+          id: token.id as string,
+          role: token.role as string,
+          name: token.name as string,
+        };
       }
       // console.log("Session Callback Output:", session);
       return session;
