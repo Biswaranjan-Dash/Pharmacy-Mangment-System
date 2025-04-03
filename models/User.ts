@@ -1,8 +1,13 @@
 import mongoose from 'mongoose';
 
-export type UserRole = 'admin' | 'supplier' | 'customer' | 'doctor';
+export type UserRole = 'admin' | 'supplier' | 'patient' | 'doctor';
+
 
 const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
   email: {
     type: String,
     required: true,
@@ -14,14 +19,14 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['admin', 'supplier', 'customer', 'doctor'],
-    required: true,
-  },
-  name: {
-    type: String,
-    required: true,
+    enum: ['patient', 'doctor', 'admin', 'supplier'],
+    default: 'patient',
   },
   createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+  updatedAt: {
     type: Date,
     default: Date.now,
   },

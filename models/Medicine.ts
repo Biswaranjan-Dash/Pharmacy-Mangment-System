@@ -1,5 +1,7 @@
+// File: models/Medicine.ts
 import mongoose from 'mongoose';
 
+// Define the schema
 const medicineSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -35,6 +37,10 @@ const medicineSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  expiryDate: {
+    type: Date,
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -45,4 +51,9 @@ const medicineSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.models.Medicine || mongoose.model('Medicine', medicineSchema);
+// Remove any existing model to force schema update
+// if (mongoose.models.Medicine) {
+//   delete mongoose.models.Medicine;
+// }
+
+export default mongoose.model('Medicine', medicineSchema);
