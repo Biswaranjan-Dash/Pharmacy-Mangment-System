@@ -54,4 +54,4 @@ export async function PATCH(
     console.error('Error updating prescription:', error);
     return NextResponse.json({ error: 'Failed to update prescription' }, { status: 500 });
   }
-}ss
+}
