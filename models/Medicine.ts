@@ -52,8 +52,8 @@ const medicineSchema = new mongoose.Schema({
 });
 
 // Remove any existing model to force schema update
-// if (mongoose.models.Medicine) {
-//   delete mongoose.models.Medicine;
-// }
+if (mongoose.models.Medicine) {
+  delete mongoose.models.Medicine;
+}
 
 export default mongoose.model('Medicine', medicineSchema);
