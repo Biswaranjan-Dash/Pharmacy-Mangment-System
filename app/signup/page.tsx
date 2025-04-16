@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Pill } from "lucide-react";
+import Link from "next/link";
 
 interface SignupForm {
   name: string;
@@ -51,7 +52,7 @@ export default function SignupPage() {
       }
 
       setSuccess("Account created successfully! Redirecting to login...");
-      setTimeout(() => router.push("/login"), 2000); // Redirect after 2 seconds
+      setTimeout(() => router.push("/login"), 2000);
     } catch (error) {
       setError("An error occurred during signup");
     }
@@ -61,8 +62,11 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100">
       <Card className="w-[400px]">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-6">
+          <div className="flex items-center justify-between mb-6">
             <Pill className="h-10 w-10 text-blue-500" />
+            <Link href="/login">
+              <Button variant="ghost">Login</Button>
+            </Link>
           </div>
           <CardTitle className="text-2xl text-center">Create Account</CardTitle>
           <CardDescription className="text-center">

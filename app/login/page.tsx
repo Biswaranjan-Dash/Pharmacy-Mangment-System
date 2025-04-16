@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Pill } from 'lucide-react';
+import Link from 'next/link';
 
 interface LoginForm {
   email: string;
@@ -57,8 +58,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-100 to-purple-100">
       <Card className="w-[400px]">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-6">
+          <div className="flex items-center justify-between mb-6">
             <Pill className="h-10 w-10 text-blue-500" />
+            <Link href="/signup">
+              <Button variant="ghost">Sign Up</Button>
+            </Link>
           </div>
           <CardTitle className="text-2xl text-center">Welcome Back</CardTitle>
           <CardDescription className="text-center">

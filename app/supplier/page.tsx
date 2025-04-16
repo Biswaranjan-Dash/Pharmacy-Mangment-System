@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +19,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Medicine {
   _id: string;
@@ -30,7 +40,7 @@ interface Medicine {
   category: string;
   requiresPrescription: boolean;
   supplier: string;
-  expiryDate: string;  // Added expiryDate
+  expiryDate: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -40,6 +50,7 @@ export default function SupplierDashboard() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [newMedicine, setNewMedicine] = useState({
     name: '',
@@ -49,7 +60,7 @@ export default function SupplierDashboard() {
     manufacturer: '',
     category: '',
     requiresPrescription: false,
-    expiryDate: '',  // Added expiryDate
+    expiryDate: '',
   });
   const [updateStock, setUpdateStock] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -81,62 +92,58 @@ export default function SupplierDashboard() {
     }
   };
 
-  // In SupplierDashboard.tsx
-// ... (previous imports remain the same)
-
-// Update the handleAddMedicine function
-const handleAddMedicine = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  try {
-    setIsLoading(true);
-    console.log("Sending medicine data:", newMedicine); // Add logging
+  const handleAddMedicine = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    const response = await fetch('/api/supplier/medicines', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newMedicine),
-    });
+    try {
+      setIsLoading(true);
+      console.log("Sending medicine data:", newMedicine);
+      
+      const response = await fetch('/api/supplier/medicines', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newMedicine),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to add medicine');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to add medicine');
+      }
+
+      const result = await response.json();
+      console.log("Response from server:", result);
+
+      setIsAddDialogOpen(false);
+      setNewMedicine({
+        name: '',
+        description: '',
+        price: 0,
+        stock: 0,
+        manufacturer: '',
+        category: '',
+        requiresPrescription: false,
+        expiryDate: '',
+      });
+      
+      toast({
+        title: "Success",
+        description: "Medicine added successfully",
+      });
+      
+      fetchMedicines();
+    } catch (error) {
+      console.error('Error adding medicine:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to add medicine. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-
-    const result = await response.json();
-    console.log("Response from server:", result); // Add logging
-
-    setIsAddDialogOpen(false);
-    setNewMedicine({
-      name: '',
-      description: '',
-      price: 0,
-      stock: 0,
-      manufacturer: '',
-      category: '',
-      requiresPrescription: false,
-      expiryDate: '',
-    });
-    
-    toast({
-      title: "Success",
-      description: "Medicine added successfully",
-    });
-    
-    fetchMedicines();
-  } catch (error) {
-    console.error('Error adding medicine:', error);
-    toast({
-      title: "Error",
-      description: error instanceof Error ? error.message : "Failed to add medicine. Please try again.",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const handleUpdateStock = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,10 +187,50 @@ const handleAddMedicine = async (e: React.FormEvent) => {
     }
   };
 
+  const handleDeleteMedicine = async () => {
+    if (!selectedMedicine) return;
+    
+    try {
+      setIsLoading(true);
+      const response = await fetch(`/api/supplier/medicines/${selectedMedicine._id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete medicine');
+      }
+
+      setIsDeleteDialogOpen(false);
+      setSelectedMedicine(null);
+      
+      toast({
+        title: "Success",
+        description: "Medicine deleted successfully",
+      });
+      
+      fetchMedicines();
+    } catch (error) {
+      console.error('Error deleting medicine:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete medicine. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const openUpdateDialog = (medicine: Medicine) => {
     setSelectedMedicine(medicine);
     setUpdateStock(medicine.stock);
     setIsUpdateDialogOpen(true);
+  };
+
+  const openDeleteDialog = (medicine: Medicine) => {
+    setSelectedMedicine(medicine);
+    setIsDeleteDialogOpen(true);
   };
 
   const isExpired = (expiryDate: string) => {
@@ -372,9 +419,18 @@ const handleAddMedicine = async (e: React.FormEvent) => {
                     {new Date(medicine.expiryDate).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
-                    <Button variant="outline" size="sm" onClick={() => openUpdateDialog(medicine)}>
-                      Update Stock
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" onClick={() => openUpdateDialog(medicine)}>
+                        Update Stock
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => openDeleteDialog(medicine)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -428,6 +484,28 @@ const handleAddMedicine = async (e: React.FormEvent) => {
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedMedicine?.name}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteMedicine}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
