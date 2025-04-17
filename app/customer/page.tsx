@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
@@ -24,12 +24,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { getOrderStatusBadgeVariant } from '@/utils/orderHelpers';
 interface Order {
   _id: string;
   totalAmount: number;
   status: string;
   createdAt: string;
+  deliveryMethod: string;
   items: Array<{
     medicine: {
       name: string;
@@ -77,8 +79,10 @@ export default function CustomerDashboard() {
   const { toast } = useToast();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [checkoutDetails, setCheckoutDetails] = useState({
+    deliveryMethod: 'delivery',
     address: '',
     phone: '',
+    prescription: null as string | null,
   });
 
   useEffect(() => {
@@ -101,8 +105,6 @@ export default function CustomerDashboard() {
         ]);
 
         setOrders(ordersData);
-        
-        // Filter out expired medicines
         const currentDate = new Date();
         const validMedicines = medicinesData.filter((medicine: Medicine) => 
           new Date(medicine.expiryDate) > currentDate && medicine.stock > 0
@@ -147,6 +149,15 @@ export default function CustomerDashboard() {
   };
 
   const handleAddPrescribedToCart = (prescription: Prescription) => {
+    if (prescription.status !== 'active') {
+      toast({
+        title: "Invalid Prescription",
+        description: "This prescription is no longer active",
+        variant: "destructive",
+      });
+      return;
+    }
+
     prescription.medicines.forEach(async (med) => {
       const medicine = medicines.find(m => m._id === med.medicine._id);
       if (medicine) {
@@ -160,6 +171,12 @@ export default function CustomerDashboard() {
       }
     });
 
+    // Set the prescription ID for checkout
+    setCheckoutDetails(prev => ({
+      ...prev,
+      prescription: prescription._id
+    }));
+
     toast({
       title: "Added to Cart",
       description: "Prescribed medicines have been added to your cart",
@@ -167,10 +184,19 @@ export default function CustomerDashboard() {
   };
 
   const handleCheckout = async () => {
-    if (!checkoutDetails.address || !checkoutDetails.phone) {
+    if (checkoutDetails.deliveryMethod === 'delivery' && !checkoutDetails.address) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all required fields",
+        description: "Please provide a delivery address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!checkoutDetails.phone) {
+      toast({
+        title: "Missing Information",
+        description: "Please provide a phone number",
         variant: "destructive",
       });
       return;
@@ -189,8 +215,10 @@ export default function CustomerDashboard() {
             price: item.price,
           })),
           totalAmount: total,
+          deliveryMethod: checkoutDetails.deliveryMethod,
           address: checkoutDetails.address,
           phone: checkoutDetails.phone,
+          prescription: checkoutDetails.prescription,
         }),
       });
 
@@ -203,9 +231,30 @@ export default function CustomerDashboard() {
       clearCart();
       setIsCheckoutOpen(false);
       
+      // Update prescriptions list if a prescription was used
+      if (checkoutDetails.prescription) {
+        setPrescriptions(prevPrescriptions =>
+          prevPrescriptions.map(p =>
+            p._id === checkoutDetails.prescription
+              ? { ...p, status: 'completed' }
+              : p
+          )
+        );
+      }
+
       toast({
         title: "Order Placed Successfully",
-        description: "Your order has been placed and is being processed",
+        description: checkoutDetails.deliveryMethod === 'collect' 
+          ? "Your order has been placed. You can collect it from the shop."
+          : "Your order has been placed and will be delivered to your address",
+      });
+
+      // Reset checkout details
+      setCheckoutDetails({
+        deliveryMethod: 'delivery',
+        address: '',
+        phone: '',
+        prescription: null,
       });
     } catch (error) {
       toast({
@@ -213,6 +262,19 @@ export default function CustomerDashboard() {
         description: "Failed to place order. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const getOrderStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'secondary';
+      case 'processing':
+        return 'default';
+      case 'completed':
+        return 'success';
+      default:
+        return 'secondary';
     }
   };
 
@@ -389,7 +451,12 @@ export default function CustomerDashboard() {
             {orders.map((order) => (
               <Card key={order._id}>
                 <CardHeader>
-                  <CardTitle>Order #{order._id.slice(-6)}</CardTitle>
+                  <div className="flex justify-between items-center">
+                    <CardTitle>Order #{order._id.slice(-6)}</CardTitle>
+                    <Badge >
+                      {order.status}
+                    </Badge>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
@@ -399,7 +466,7 @@ export default function CustomerDashboard() {
                           Date: {new Date(order.createdAt).toLocaleDateString()}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Status: {order.status}
+                          Method: {order.deliveryMethod === 'collect' ? 'Collect from Shop' : 'Delivery'}
                         </p>
                       </div>
                       <p className="font-bold">
@@ -430,17 +497,40 @@ export default function CustomerDashboard() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="address">Delivery Address</Label>
-              <Input
-                id="address"
-                value={checkoutDetails.address}
-                onChange={(e) => setCheckoutDetails({
+              <Label>Delivery Method</Label>
+              <RadioGroup
+                value={checkoutDetails.deliveryMethod}
+                onValueChange={(value) => setCheckoutDetails({
                   ...checkoutDetails,
-                  address: e.target.value
+                  deliveryMethod: value
                 })}
-                placeholder="Enter your delivery address"
-              />
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="delivery" id="delivery" />
+                  <Label htmlFor="delivery">Home Delivery</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="collect" id="collect" />
+                  <Label htmlFor="collect">Collect from Shop</Label>
+                </div>
+              </RadioGroup>
             </div>
+
+            {checkoutDetails.deliveryMethod === 'delivery' && (
+              <div className="space-y-2">
+                <Label htmlFor="address">Delivery Address</Label>
+                <Input
+                  id="address"
+                  value={checkoutDetails.address}
+                  onChange={(e) => setCheckoutDetails({
+                    ...checkoutDetails,
+                    address: e.target.value
+                  })}
+                  placeholder="Enter your delivery address"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input
@@ -453,6 +543,7 @@ export default function CustomerDashboard() {
                 placeholder="Enter your phone number"
               />
             </div>
+
             <div className="border-t pt-4">
               <div className="flex justify-between mb-2">
                 <span>Subtotal:</span>

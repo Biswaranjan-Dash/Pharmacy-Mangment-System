@@ -30,6 +30,21 @@ const orderSchema = new mongoose.Schema({
     enum: ['pending', 'processing', 'completed', 'cancelled'],
     default: 'pending',
   },
+  deliveryMethod: {
+    type: String,
+    enum: ['delivery', 'collect'],
+    required: true,
+  },
+  address: {
+    type: String,
+    required: function(this: { deliveryMethod: string }) {
+      return this.deliveryMethod === 'delivery';
+    },
+  },
+  phone: {
+    type: String,
+    required: true,
+  },
   prescription: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Prescription',
