@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 
-export type UserRole = 'admin' | 'supplier' | 'patient' | 'doctor';
-
+export type UserRole = 'admin' | 'supplier' | 'customer' | 'doctor';
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -19,8 +18,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['patient', 'doctor', 'admin', 'supplier'],
-    default: 'patient',
+    enum: ['customer', 'doctor', 'admin', 'supplier'],
+    default: 'customer',
   },
   createdAt: {
     type: Date,
@@ -32,4 +31,9 @@ const userSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.models.User || mongoose.model('User', userSchema);
+// Delete the model if it exists to ensure schema changes are applied
+if (mongoose.models.User) {
+  delete mongoose.models.User;
+}
+
+export default mongoose.model('User', userSchema);

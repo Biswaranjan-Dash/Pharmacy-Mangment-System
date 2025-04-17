@@ -44,4 +44,9 @@ const orderSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.models.Order || mongoose.model('Order', orderSchema);
+// Delete the model if it exists to ensure schema changes are applied
+if (mongoose.models.Order) {
+  delete mongoose.models.Order;
+}
+
+export default mongoose.model('Order', orderSchema);

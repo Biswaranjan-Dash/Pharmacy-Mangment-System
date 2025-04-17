@@ -1,7 +1,5 @@
-// File: models/Medicine.ts
 import mongoose from 'mongoose';
 
-// Define the schema
 const medicineSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -51,7 +49,7 @@ const medicineSchema = new mongoose.Schema({
   },
 });
 
-// Remove any existing model to force schema update
+// Delete the model if it exists to ensure schema changes are applied
 if (mongoose.models.Medicine) {
   delete mongoose.models.Medicine;
 }

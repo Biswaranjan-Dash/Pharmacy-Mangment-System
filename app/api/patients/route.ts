@@ -4,7 +4,6 @@ import User from "@/models/User";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-
 export async function GET() {
   try {
     await connectDB();
@@ -14,14 +13,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    // Assuming users with role 'patient' are fetchable
-    const patients = await User.find({ role: 'patient' })
+    const customers = await User.find({ role: 'customer' })
       .select('_id name email')
       .lean();
       
-    return NextResponse.json(patients);
+    return NextResponse.json(customers);
   } catch (error) {
-    console.error('Error fetching patients:', error);
-    return NextResponse.json({ error: 'Failed to fetch patients' }, { status: 500 });
+    console.error('Error fetching customers:', error);
+    return NextResponse.json({ error: 'Failed to fetch customers' }, { status: 500 });
   }
 }

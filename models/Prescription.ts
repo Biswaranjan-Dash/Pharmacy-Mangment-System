@@ -42,4 +42,9 @@ const prescriptionSchema = new mongoose.Schema({
   },
 });
 
-export default mongoose.models.Prescription || mongoose.model('Prescription', prescriptionSchema);
+// Delete the model if it exists to ensure schema changes are applied
+if (mongoose.models.Prescription) {
+  delete mongoose.models.Prescription;
+}
+
+export default mongoose.model('Prescription', prescriptionSchema);

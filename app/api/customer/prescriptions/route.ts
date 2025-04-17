@@ -13,7 +13,7 @@ export async function GET() {
 
     await connectDB();
 
-    const prescriptions = await Prescription.find({ patient: session.user.id })
+    const prescriptions = await Prescription.find({ customer: session.user.id })
       .populate('doctor', 'name')
       .populate('medicines.medicine', 'name')
       .sort({ createdAt: -1 });

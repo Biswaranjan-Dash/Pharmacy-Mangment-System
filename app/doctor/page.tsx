@@ -42,10 +42,6 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useToast } from "@/hooks/use-toast";
 
-
-
-
-// Define interfaces
 interface Prescription {
   _id: string;
   patient: {
@@ -76,13 +72,12 @@ interface Medicine {
   requiresPrescription: boolean;
 }
 
-interface Patient {
+interface Customer {
   _id: string;
   name: string;
   email: string;
 }
 
-// Define form validation schema
 const prescriptionFormSchema = z.object({
   patientId: z.string({ required_error: "Please select a patient" }),
   medicines: z.array(
@@ -100,14 +95,13 @@ export default function DoctorDashboard() {
   const { data: session } = useSession();
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [medicines, setMedicines] = useState<Medicine[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patients, setPatients] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const { toast } = useToast();
 
-  // Setup form
   const form = useForm<z.infer<typeof prescriptionFormSchema>>({
     resolver: zodResolver(prescriptionFormSchema),
     defaultValues: {
@@ -116,23 +110,19 @@ export default function DoctorDashboard() {
     },
   });
 
-  // Fetch data on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Fetch prescriptions
         const prescriptionsRes = await fetch("/api/doctor/prescriptions");
         if (!prescriptionsRes.ok) throw new Error("Failed to fetch prescriptions");
         const prescriptionsData = await prescriptionsRes.json();
         
-        // Fetch medicines
         const medicinesRes = await fetch("/api/medicines");
         if (!medicinesRes.ok) throw new Error("Failed to fetch medicines");
         const medicinesData = await medicinesRes.json();
 
-        // Fetch patients
         const patientsRes = await fetch("/api/patients");
         if (!patientsRes.ok) throw new Error("Failed to fetch patients");
         const patientsData = await patientsRes.json();
@@ -150,7 +140,6 @@ export default function DoctorDashboard() {
     fetchData();
   }, []);
 
-  // Handle form submission
   const onSubmit = async (data: z.infer<typeof prescriptionFormSchema>) => {
     try {
       const response = await fetch("/api/prescriptions", {
@@ -171,10 +160,8 @@ export default function DoctorDashboard() {
 
       const newPrescription = await response.json();
 
-      // Add the new prescription to the list
       setPrescriptions([newPrescription, ...prescriptions]);
       
-      // Close dialog and reset form
       setIsDialogOpen(false);
       form.reset();
       
@@ -192,7 +179,6 @@ export default function DoctorDashboard() {
     }
   };
 
-  // Function to add medicine field
   const addMedicine = () => {
     const currentMedicines = form.getValues("medicines");
     form.setValue("medicines", [
@@ -201,7 +187,6 @@ export default function DoctorDashboard() {
     ]);
   };
 
-  // Function to remove medicine field
   const removeMedicine = (index: number) => {
     const currentMedicines = form.getValues("medicines");
     if (currentMedicines.length > 1) {
@@ -212,12 +197,10 @@ export default function DoctorDashboard() {
     }
   };
 
-  // View prescription details
   const viewPrescriptionDetails = (prescription: Prescription) => {
     setSelectedPrescription(prescription);
   };
 
-  // Handle loading and error states
   if (loading) {
     return <div className="p-8">Loading prescriptions...</div>;
   }
@@ -244,7 +227,6 @@ export default function DoctorDashboard() {
             
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                {/* Patient Selection */}
                 <FormField
                   control={form.control}
                   name="patientId"
@@ -273,7 +255,6 @@ export default function DoctorDashboard() {
                   )}
                 />
                 
-                {/* Medicines */}
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <FormLabel>Medicines</FormLabel>
@@ -364,7 +345,6 @@ export default function DoctorDashboard() {
                   ))}
                 </div>
                 
-                {/* Notes */}
                 <FormField
                   control={form.control}
                   name="notes"
@@ -382,7 +362,6 @@ export default function DoctorDashboard() {
                   )}
                 />
                 
-                {/* Valid Until */}
                 <FormField
                   control={form.control}
                   name="validUntil"
@@ -483,7 +462,6 @@ export default function DoctorDashboard() {
         </TabsContent>
       </Tabs>
 
-      {/* Prescription Details Dialog */}
       {selectedPrescription && (
         <Dialog open={!!selectedPrescription} onOpenChange={() => setSelectedPrescription(null)}>
           <DialogContent className="max-w-3xl">
@@ -537,7 +515,6 @@ export default function DoctorDashboard() {
                         
                         if (!response.ok) throw new Error("Failed to update prescription");
                         
-                        // Update local state
                         setPrescriptions(prescriptions.map(p => 
                           p._id === selectedPrescription._id 
                             ? { ...p, status: "completed" } 
